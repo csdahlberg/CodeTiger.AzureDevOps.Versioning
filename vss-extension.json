@@ -1,0 +1,40 @@
+{
+    "manifestVersion": 1,
+    "publisher": "csdahlberg",
+    "id": "versioning",
+    "name": "CodeTiger Versioning",
+    "version": "0.9.0",
+    "description": "",
+    "categories": [
+        "Build and release"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services.Cloud"
+        }
+    ],
+    "icons": {
+        "default": "images/Footprint128x128.png"
+    },
+    "galleryFlags": [
+        "Preview"
+    ],
+    "files": [
+        {
+            "path": "stamp-versions-task"
+        }
+    ],
+    "contributions": [
+        {
+            "id": "C6D4C637-19DB-4702-AB1A-6CDCDBC20176",
+            "type": "ms.vss-distributed-task.task",
+            "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, and *.vsixmanifest files.",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "stamp-versions-task"
+            }
+        }
+    ]
+}

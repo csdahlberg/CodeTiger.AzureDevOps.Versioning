@@ -1,0 +1,92 @@
+{
+    "$schema": "https://raw.githubusercontent.com/AArnott/vso-agent-tasks/9b41d803a/tasks.schema.json",
+    "id": "C6D4C637-19DB-4702-AB1A-6CDCDBC20176",
+    "name": "stamp-versions-task",
+    "friendlyName": "Stamp Version Information",
+    "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, and *.vsixmanifest files.",
+    "helpMarkDown": "`AssemblyVersion` attributes will be set to `{majorVersion}.{minorVersion}.{patchVersion}.0`. `AssemblyFileVersion` attributes will be set to `{majorVersion}.{minorVersion}.{dateStamp}.{revision}`. `AssemblyInformationalVersion` attributes, NuGet package versions, and VSIX versions will be set to either `{majorVersion}.{minorVersion}.{patchVersion}` or `{majorVersion}.{minorVersion}.{patchVersion}-{prereleaseLabel}{prereleaseRevision}`.",
+    "category": "Build",
+    "visibility": [
+        "Build"
+    ],
+    "author": "Chris Dahlberg",
+    "version": {
+        "Major": 0,
+        "Minor": 9,
+        "Patch": 0
+    },
+    "instanceNameFormat": "Stamp $(MajorVersion).$(MinorVersion).$(PatchVersion)",
+    "inputs": [
+        {
+            "name": "SourcesDirectory",
+            "type": "filePath",
+            "label": "Sources Directory",
+            "defaultValue": "$(Build.SourcesDirectory)",
+            "required": true,
+            "helpMarkDown": "The directory containing '*AssemblyInfo.cs' files to stamp version numbers in."
+        },
+        {
+            "name": "ProductName",
+            "type": "string",
+            "label": "Product Name",
+            "defaultValue": "$(System.TeamProject)",
+            "required": true,
+            "helpMarkDown": "The name of the product being versioned. This is used when generating unique revision numbers."
+        },
+        {
+            "name": "MajorVersion",
+            "type": "string",
+            "label": "Major Version",
+            "defaultValue": "0",
+            "required": true,
+            "helpMarkDown": "The major version (the first part of the version)."
+        },
+        {
+            "name": "MinorVersion",
+            "type": "string",
+            "label": "Minor Version",
+            "defaultValue": "0",
+            "required": true,
+            "helpMarkDown": "The minor version (the second part of the version)."
+        },
+        {
+            "name": "PatchVersion",
+            "type": "string",
+            "label": "Patch Version",
+            "defaultValue": "1",
+            "required": true,
+            "helpMarkDown": "The patch version (the third part of the version)."
+        },
+        {
+            "name": "PrereleaseLabel",
+            "type": "string",
+            "label": "Prerelease Label",
+            "defaultValue": "",
+            "required": false,
+            "helpMarkDown": "The pre-release label to use (e.g. `beta`, `prerelease`, etc.), or blank if this is not a pre-release version."
+        },
+        {
+            "name": "AssemblyFileVersionRevisionOverride",
+            "type": "string",
+            "label": "AssemblyFileVersion Revision Override",
+            "defaultValue": "-1",
+            "required": false,
+            "helpMarkDown": "Overrides the revision (the fourth part of the version) to use for AssemblyFileVersion. Use the default value of `-1` to use auto-incrementing revisions."
+        },
+        {
+            "name": "PackagePrereleaseRevisionOverride",
+            "type": "string",
+            "label": "Package Prerelease Revision Override",
+            "defaultValue": "-1",
+            "required": false,
+            "helpMarkDown": "The revision (the number after the PrereleaseLabel) to use for a prerelease package. Use the default value of `-1` to use auto-incrementing revisions."
+        }
+    ],
+    "execution": {
+        "PowerShell": {
+            "target": "$(currentDirectory)\\StampVersions.ps1",
+            "argumentFormat": "",
+            "workingDirectory": "$(Build.SourcesDirectory)"
+        }
+    }
+}
