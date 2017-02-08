@@ -81,12 +81,7 @@ function StampVersionsInVsixmanifestFile
     $identityNodes = $xml.SelectNodes("/*[local-name() = 'PackageManifest']/*[local-name() = 'Metadata']/*[local-name() = 'Identity']");
     foreach ($identityNode in $identityNodes)
     {
-        $val = $identityNode.Attributes["Version"].Value;
-        Write-Host "Node: $val";
         $identityNode.SetAttribute("Version", $Version);
-
-        $val = $identityNode.Attributes["Version"].Value;
-        Write-Host "Node: $val";
     }
 
     [string]$newXml = $xml.OuterXml;
