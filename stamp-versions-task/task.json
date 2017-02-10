@@ -13,7 +13,7 @@
     "version": {
         "Major": 0,
         "Minor": 9,
-        "Patch": 0
+        "Patch": 3
     },
     "instanceNameFormat": "Stamp $(MajorVersion).$(MinorVersion).$(PatchVersion)",
     "inputs": [
