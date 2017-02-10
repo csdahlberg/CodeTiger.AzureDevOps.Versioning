@@ -3,7 +3,7 @@
     "id": "C6D4C637-19DB-4702-AB1A-6CDCDBC20176",
     "name": "stamp-versions-task",
     "friendlyName": "Stamp Version Information",
-    "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, and *.vsixmanifest files.",
+    "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, *.vsixmanifest, and *.csproj files.",
     "helpMarkDown": "`AssemblyVersion` attributes will be set to `{majorVersion}.{minorVersion}.{patchVersion}.0`. `AssemblyFileVersion` attributes will be set to `{majorVersion}.{minorVersion}.{dateStamp}.{revision}`. `AssemblyInformationalVersion` attributes, NuGet package versions, and VSIX versions will be set to either `{majorVersion}.{minorVersion}.{patchVersion}` or `{majorVersion}.{minorVersion}.{patchVersion}-{prereleaseLabel}{prereleaseRevision}`.",
     "category": "Build",
     "visibility": [
@@ -23,7 +23,7 @@
             "label": "Sources Directory",
             "defaultValue": "$(Build.SourcesDirectory)",
             "required": true,
-            "helpMarkDown": "The directory containing '*AssemblyInfo.cs' files to stamp version numbers in."
+            "helpMarkDown": "The directory containing files to stamp version numbers in."
         },
         {
             "name": "ProductName",

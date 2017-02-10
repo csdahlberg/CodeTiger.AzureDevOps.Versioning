@@ -40,6 +40,39 @@ function StampVersionsInAssemblyInfoFile
     }
 }
 
+function StampVersionsInNetstandardCsprojFile
+{
+    Param (
+        [string]$CsprojFile,
+        [string]$Version
+    )
+
+    [string]$originalXml = [System.IO.File]::ReadAllText($CsprojFile);
+
+    $xml = New-Object System.Xml.XmlDocument;
+    $xml.PreserveWhitespace = $true;
+    $xml.LoadXml($originalXml);
+
+    $packageVersionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'PackageVersion']");
+    foreach ($packageVersionNode in $packageVersionNodes)
+    {
+        $packageVersionNode.InnerText = $Version;
+    }
+
+    [string]$newXml = $xml.OuterXml;
+
+    if ($newXml -ne $originalXml)
+    {
+        [System.IO.File]::WriteAllText($CsprojFile, $newXml);
+        Write-Host "Version numbers updated in '$CsprojFile'.";
+        $true;
+    }
+    else
+    {
+        $false;
+    }
+}
+
 function StampVersionsInNuSpecFile
 {
     Param (
@@ -115,6 +148,13 @@ function StampVersions
     foreach ($assemblyInfoFile in [System.IO.Directory]::EnumerateFiles($Directory, "*AssemblyInfo.cs", [System.IO.SearchOption]::AllDirectories))
     {
         [bool]$wasFileUpdated = StampVersionsInAssemblyInfoFile -AssemblyInfoFile $assemblyInfoFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion;
+        $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
+    }
+
+    # Update *.csproj files
+    foreach ($csprojFile in [System.IO.Directory]::EnumerateFiles($Directory, "*.csproj", [System.IO.SearchOption]::AllDirectories))
+    {
+        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -Version $AssemblyInformationalVersion;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
 
