@@ -44,7 +44,10 @@ function StampVersionsInNetstandardCsprojFile
 {
     Param (
         [string]$CsprojFile,
-        [string]$Version
+        [string]$AssemblyVersion,
+        [string]$AssemblyFileVersion,
+        [string]$AssemblyInformationalVersion,
+        [string]$AssemblyInformationalVersionSuffix
     )
 
     [string]$originalXml = [System.IO.File]::ReadAllText($CsprojFile);
@@ -53,10 +56,32 @@ function StampVersionsInNetstandardCsprojFile
     $xml.PreserveWhitespace = $true;
     $xml.LoadXml($originalXml);
 
-    $packageVersionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'PackageVersion']");
-    foreach ($packageVersionNode in $packageVersionNodes)
+    # Set /Project/PropertyGroup/Version elements to $AssemblyInformationalVersion
+    $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'Version']");
+    foreach ($versionNode in $versionNodes)
     {
-        $packageVersionNode.InnerText = $Version;
+        $versionNode.InnerText = $AssemblyInformationalVersion;
+    }
+
+    # Set /Project/PropertyGroup/VersionPrefix elements to $AssemblyVersion
+    $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'VersionPrefix']");
+    foreach ($versionNode in $versionNodes)
+    {
+        $versionNode.InnerText = $AssemblyVersion;
+    }
+
+    # Set /Project/PropertyGroup/VersionSuffix elements to $AssemblyInformationalVersionSuffix
+    $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'VersionSuffix']");
+    foreach ($versionNode in $versionNodes)
+    {
+        $versionNode.InnerText = $AssemblyInformationalVersionSuffix;
+    }
+
+    # Set /Project/PropertyGroup/FileVersion elements to $AssemblyFileVersion
+    $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'FileVersion']");
+    foreach ($versionNode in $versionNodes)
+    {
+        $versionNode.InnerText = $AssemblyFileVersion;
     }
 
     [string]$newXml = $xml.OuterXml;
@@ -137,7 +162,8 @@ function StampVersions
         [string]$Directory,
         [string]$AssemblyVersion,
         [string]$AssemblyFileVersion,
-        [string]$AssemblyInformationalVersion
+        [string]$AssemblyInformationalVersion,
+        [string]$AssemblyInformationalVersionSuffix
     )
 
     Write-Host "Searching for files in '$Directory' to stamp version info in...";
@@ -385,29 +411,6 @@ function CreateOrIncrementRevision
     Exit;
 }
 
-function GetAssemblyInformationalVersion
-{
-    Param (
-        [string]$ProductName,
-        [int]$MajorVersion,
-        [int]$MinorVersion,
-        [int]$PatchVersion,
-        [string]$PrereleaseLabel,
-        [int]$PackagePrereleaseRevisionOverride
-    )
-
-    if ([string]::IsNullOrWhiteSpace($PrereleaseLabel))
-    {
-        "$MajorVersion.$MinorVersion.$PatchVersion";
-    }
-    else
-    {
-        [int]$prereleaseRevision = CreateOrIncrementRevision -RevisionKey "$ProductName|AssemblyInformationalVersion|$MajorVersion.$MinorVersion.$PatchVersion-$PrereleaseLabel" -RevisionOverride $PackagePrereleaseRevisionOverride;
-        
-        [string]::Format("{0}.{1}.{2}-{3}{4:D2}", $MajorVersion, $MinorVersion, $PatchVersion, $PrereleaseLabel, $prereleaseRevision);
-    }
-}
-
 Add-Type -AssemblyName "System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
 Add-Type -AssemblyName "System.Web, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
 Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
@@ -423,6 +426,18 @@ Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyT
 [int]$assemblyFileVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyFileVersion $MajorVersion.$MinorVersion.$dateNumber" -RevisionOverride $AssemblyFileVersionRevisionOverride;
 [string]$assemblyFileVersion = "$MajorVersion.$MinorVersion.$dateNumber.$assemblyFileVersionRevision";
 
-[string]$assemblyInformationalVersion = GetAssemblyInformationalVersion -ProductName $ProductName -MajorVersion $majorVersion -MinorVersion $minorVersion -PatchVersion $patchVersion -PrereleaseLabel $prereleaseLabel -PackagePrereleaseRevisionOverride $PackagePrereleaseRevisionOverride;
+[string]$assemblyInformationalVersionSuffix;
+[string]$assemblyInformationalVersion;
+if ([string]::IsNullOrWhiteSpace($PrereleaseLabel))
+{
+    $assemblyInformationalVersionSuffix = $null;
+    $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion";
+}
+else
+{
+    [int]$assemblyInformationalVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyInformationalVersion $MajorVersion.$MinorVersion.$PatchVersion-$PrereleaseLabel" -RevisionOverride $PackagePrereleaseRevisionOverride;
+    $assemblyInformationalVersionSuffix = $PrereleaseLabel + $assemblyInformationalVersionRevision.ToString("D2");
+    $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion-$assemblyInformationalVersionSuffix";
+}
 
-StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersion $assemblyInformationalVersion;
+StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion;
