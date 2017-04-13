@@ -181,6 +181,7 @@ function StampVersions
 function CreateOrIncrementRevision
 {
     Param (
+        [string]$ProductName,
         [string]$RevisionKey,
         [int]$RevisionOverride
         )
@@ -198,6 +199,9 @@ function CreateOrIncrementRevision
     [int]$maxAttempts = 5;
     [int]$attempt = 1;
 
+    [string]$urlEncodedProductName = [System.Web.HttpUtility]::UrlEncode($ProductName);
+    [string]$urlEncodedRevisionKey = [System.Web.HttpUtility]::UrlEncode($RevisionKey);
+
     # Make up to 5 attempts to create or update the revision
     while ($attempts -le $maxAttempts)
     {
@@ -212,40 +216,61 @@ function CreateOrIncrementRevision
             $httpClient.DefaultRequestHeaders.Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN";
             [void]$httpClient.DefaultRequestHeaders.Accept.Add("application/json; api-version=3.1-preview.1");
 
-            Write-Host "Attempting to get the current revision for '$RevisionKey'...";
+            Write-Host "Attempting to get the current revision for '$RevisionKey' of '$ProductName'...";
             
-            [string]$getUrl = "_apis/ExtensionManagement/InstalledExtensions/csdahlberg/versioning/Data/Scopes/Default/Current/Collections/%24settings/Documents/$RevisionKey";
+            [string]$getUrl = "_apis/ExtensionManagement/InstalledExtensions/csdahlberg/versioning/Data/Scopes/Default/Current/Collections/Revisions/Documents/$urlEncodedProductName";
             $getResponse = $httpClient.GetAsync($getUrl).GetAwaiter().GetResult();
 
             if ($getResponse.StatusCode -eq [System.Net.HttpStatusCode]::OK)
             {
-                # The version has a revision set for it, so it will be updated
+                # The product has existing revision information, so it needs to be updated
 
-                $getResponseObject = $getResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json;
-                [int]$currentRevision = $getResponseObject.value;
-                [int]$newRevision = 0;
-                if ($RevisionOverride -lt 0)
+                $revisionInformation = $getResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json;
+
+                if ($revisionInformation.PSObject.Properties.Name -contains $urlEncodedRevisionKey)
                 {
-                    $newRevision = $currentRevision + 1;
-                    Write-Host "A revision of $currentRevision already exists for '$RevisionKey'. Incrementing it to $newRevision...";
+                    # The version has a revision set for it, so it will be updated
+
+                    [int]$currentRevision = $revisionInformation.$urlEncodedRevisionKey;
+                    if ($RevisionOverride -lt 0)
+                    {
+                        [int]$newRevision = $currentRevision + 1;
+                        $revisionInformation.$urlEncodedRevisionKey = $newRevision;
+                        Write-Host "A revision of '$currentRevision' already exists for '$RevisionKey'. Incrementing it to '$newRevision'...";
+                    }
+                    else
+                    {
+                        $revisionInformation.$urlEncodedRevisionKey = $RevisionOverride;
+                        Write-Host "A revision of '$currentRevision' already exists for '$RevisionKey'. Setting it to the override value of '$RevisionOverride'...";
+                    }
                 }
                 else
                 {
-                    $newRevision = $RevisionOverride;
-                    Write-Host "A revision of $currentRevision already exists for '$RevisionKey'. Setting it to the override value of $newRevision...";
+                    # The version does not have a revision set for it, so it will be created.
+
+                    if ($RevisionOverride -lt 0)
+                    {
+                        $revisionInformation | Add-Member -Name $urlEncodedRevisionKey -MemberType NoteProperty -Value 1;
+                        Write-Host "A revision of '1' will be created for '$RevisionKey'.";
+                    }
+                    else
+                    {
+                        $revisionInformation | Add-Member -Name $urlEncodedRevisionKey -MemberType NoteProperty -Value $RevisionOverride;
+                        Write-Host "A revision of the override value '$RevisionOverride' will be created for '$RevisionKey'.";
+                    }
                 }
 
-                [string]$setRequestJson = @{ id = $RevisionKey; __etag = $getResponseObject.__etag; value = $newRevision } | ConvertTo-Json;
+                [string]$setRequestJson = $revisionInformation | ConvertTo-Json;
 
                 [System.Net.Http.StringContent]$setRequestContent = New-Object System.Net.Http.StringContent($setRequestJson);
                 $setRequestContent.Headers.ContentType = "application/json";
 
-                [string]$setUrl = "_apis/ExtensionManagement/InstalledExtensions/csdahlberg/versioning/Data/Scopes/Default/Current/Collections/%24settings/Documents";
+                [string]$setUrl = "_apis/ExtensionManagement/InstalledExtensions/csdahlberg/versioning/Data/Scopes/Default/Current/Collections/Revisions/Documents";
                 $setResponse = $httpClient.PutAsync($setUrl, $setRequestContent).GetAwaiter().GetResult();
 
                 if ($setResponse.IsSuccessStatusCode)
                 {
-                    $newRevision;
+                    $revisionInformation.$urlEncodedRevisionKey;
                     return;
                 }
 
@@ -256,7 +281,7 @@ function CreateOrIncrementRevision
                     $setResponseObject = $setResponseJson | ConvertFrom-Json;
                     if ($setResponseObject.typeKey -eq "InvalidDocumentVersionException")
                     {
-                        Write-Host "Saving the new revision for '$RevisionKey' failed because it was modified by another process."; # TODO: Add a message about this being retried.
+                        Write-Host "Saving the new revision for '$RevisionKey' failed, probably because it was modified by another process.";
                     }
                     else
                     {
@@ -274,24 +299,24 @@ function CreateOrIncrementRevision
             }
             elseif ($getResponse.StatusCode -eq [System.Net.HttpStatusCode]::NotFound)
             {
-                # The version does not have a revision set for it, so it will be created
+                # The product does not have any existing revision information, so it will be created
 
                 [int]$newRevision = 0;
                 if ($RevisionOverride -lt 0)
                 {
                     $newRevision = 1;
-                    Write-Host "No revision was found for '$RevisionKey'. Setting it to 1...";
+                    Write-Host "No revision information was found for '$ProductName'. Creating a revision for '$RevisionKey' with a value of 1...";
                 }
                 else
                 {
                     $newRevision = $RevisionOverride;
-                    Write-Host "No revision was found for '$RevisionKey'. Setting it to the override value of $newRevision...";
+                    Write-Host "No revision information was found for '$ProductName'. Creating a revision for '$RevisionKey' with the override value of '$newRevision'...";
                 }
-                [string]$setRequestJson = @{ id = $RevisionKey; value = $newRevision } | ConvertTo-Json;
+                [string]$setRequestJson = @{ id = $urlEncodedProductName; $urlEncodedRevisionKey = $newRevision } | ConvertTo-Json;
 
                 [System.Net.Http.StringContent]$setRequestContent = New-Object System.Net.Http.StringContent($setRequestJson);
                 $setRequestContent.Headers.ContentType = "application/json";
-                [string]$setUrl = "_apis/ExtensionManagement/InstalledExtensions/csdahlberg/versioning/Data/Scopes/Default/Current/Collections/%24settings/Documents";
+                [string]$setUrl = "_apis/ExtensionManagement/InstalledExtensions/csdahlberg/versioning/Data/Scopes/Default/Current/Collections/Revisions/Documents";
                 $setResponse = $httpClient.PostAsync($setUrl, $setRequestContent).GetAwaiter().GetResult();
 
                 if ($setResponse.IsSuccessStatusCode)
@@ -307,25 +332,25 @@ function CreateOrIncrementRevision
                     $setResponseObject = $setResponseJson | ConvertFrom-Json;
                     if ($setResponseObject.typeKey -eq "DocumentExistsException")
                     {
-                        Write-Host "Creating the initial revision for '$RevisionKey' failed because it was created by another process."; # TODO: Add a message about this being retried.
+                        Write-Host "Creating the initial revision information for '$ProductName' failed, probably because it was created by another process.";
                     }
                     else
                     {
-                        Write-Host "##vso[task.logissue type=error]An error was returned attempting to create the initial revision for '$RevisionKey': $setResponse";
+                        Write-Host "##vso[task.logissue type=error]An error was returned attempting to create the initial revision information for '$ProductName': $setResponse";
                         Write-Host "##vso[task.complete result=Failed]DONE";
                         Exit;
                     }
                 }
                 else
                 {
-                    Write-Host "##vso[task.logissue type=error]An error was returned attempting to create the initial revision for '$RevisionKey': $setResponse";
+                    Write-Host "##vso[task.logissue type=error]An error was returned attempting to create the initial revision information for '$ProductName': $setResponse";
                     Write-Host "##vso[task.complete result=Failed]DONE";
                     Exit;
                 }
             }
             else
             {
-                Write-Host "##vso[task.logissue type=error]An unexpected response was returned attempting to get the current revision for '$RevisionKey': $getResponse";
+                Write-Host "##vso[task.logissue type=error]An unexpected response was returned attempting to get existing revision information for '$ProductName': $getResponse";
                 Write-Host "##vso[task.complete result=Failed]DONE";
                 Exit;
             }
@@ -355,7 +380,7 @@ function CreateOrIncrementRevision
         $attempts += 1;
     }
 
-    Write-Host "##vso[task.logissue type=error]ERROR: The revision for '$RevisionKey' could not be updated after 5 attempts. Giving up.";
+    Write-Host "##vso[task.logissue type=error]ERROR: The revision for '$RevisionKey' of '$ProductName' could not be updated after 5 attempts. Giving up.";
     Write-Host "##vso[task.complete result=Failed]DONE";
     Exit;
 }
@@ -384,6 +409,7 @@ function GetAssemblyInformationalVersion
 }
 
 Add-Type -AssemblyName "System.Net.Http, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
+Add-Type -AssemblyName "System.Web, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
 Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
 
 # The build date number is the number of days since 2000-01-01
@@ -394,8 +420,8 @@ Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyT
 
 [string]$assemblyVersion = "$MajorVersion.$MinorVersion.$PatchVersion.0";
 
-[int]$assemblyFileVersionRevision = CreateOrIncrementRevision -RevisionKey "$ProductName|AssemblyFileVersion|$majorVersion.$minorVersion.$dateNumber" -RevisionOverride $AssemblyFileVersionRevisionOverride;
-[string]$assemblyFileVersion = "$majorVersion.$minorVersion.$dateNumber.$assemblyFileVersionRevision";
+[int]$assemblyFileVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyFileVersion $MajorVersion.$MinorVersion.$dateNumber" -RevisionOverride $AssemblyFileVersionRevisionOverride;
+[string]$assemblyFileVersion = "$MajorVersion.$MinorVersion.$dateNumber.$assemblyFileVersionRevision";
 
 [string]$assemblyInformationalVersion = GetAssemblyInformationalVersion -ProductName $ProductName -MajorVersion $majorVersion -MinorVersion $minorVersion -PatchVersion $patchVersion -PrereleaseLabel $prereleaseLabel -PackagePrereleaseRevisionOverride $PackagePrereleaseRevisionOverride;
 

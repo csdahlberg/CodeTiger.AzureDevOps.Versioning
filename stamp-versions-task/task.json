@@ -13,9 +13,16 @@
     "version": {
         "Major": 0,
         "Minor": 9,
-        "Patch": 3
+        "Patch": 15
     },
     "instanceNameFormat": "Stamp $(MajorVersion).$(MinorVersion).$(PatchVersion)",
+    "groups": [
+        {
+            "name": "advanced",
+            "displayName": "Advanced",
+            "isExpanded": false
+        }
+    ],
     "inputs": [
         {
             "name": "SourcesDirectory",
@@ -31,7 +38,10 @@
             "label": "Product Name",
             "defaultValue": "$(System.TeamProject)",
             "required": true,
-            "helpMarkDown": "The name of the product being versioned. This is used when generating unique revision numbers."
+            "helpMarkDown": "The name of the product being versioned. This is used when generating unique revision numbers.",
+            "properties": {
+                "maxLength": 50
+            }
         },
         {
             "name": "MajorVersion",
@@ -71,7 +81,8 @@
             "label": "AssemblyFileVersion Revision Override",
             "defaultValue": "-1",
             "required": false,
-            "helpMarkDown": "Overrides the revision (the fourth part of the version) to use for AssemblyFileVersion. Use the default value of `-1` to use auto-incrementing revisions."
+            "helpMarkDown": "Overrides the revision (the fourth part of the version) to use for AssemblyFileVersion. Use the default value of `-1` to use auto-incrementing revisions.",
+            "groupName": "advanced"
         },
         {
             "name": "PackagePrereleaseRevisionOverride",
@@ -79,7 +90,8 @@
             "label": "Package Prerelease Revision Override",
             "defaultValue": "-1",
             "required": false,
-            "helpMarkDown": "The revision (the number after the PrereleaseLabel) to use for a prerelease package. Use the default value of `-1` to use auto-incrementing revisions."
+            "helpMarkDown": "The revision (the number after the PrereleaseLabel) to use for a prerelease package. Use the default value of `-1` to use auto-incrementing revisions.",
+            "groupName": "advanced"
         }
     ],
     "execution": {
