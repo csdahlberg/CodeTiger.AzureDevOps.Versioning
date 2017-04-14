@@ -180,7 +180,7 @@ function StampVersions
     # Update *.csproj files
     foreach ($csprojFile in [System.IO.Directory]::EnumerateFiles($Directory, "*.csproj", [System.IO.SearchOption]::AllDirectories))
     {
-        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -Version $AssemblyInformationalVersion;
+        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion -AssemblyInformationalVersionSuffix $AssemblyInformationalVersionSuffix;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
 
