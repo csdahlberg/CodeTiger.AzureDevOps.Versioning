@@ -25,13 +25,26 @@ function StampVersionsInAssemblyInfoFile
     [string]$assemblyInformationalVersionRegex = "(?<firstPart>\[([^\]]*)AssemblyInformationalVersion(Attribute)?[\s]*\([\s]*`")(?<version>[^`"]*)(?<lastPart>`"[\s]*\)[\s]*\])";
     
     [string]$newFile = [System.Text.RegularExpressions.Regex]::Replace($originalFile, $assemblyVersionRegex, '${firstPart}' + $AssemblyVersion + '${lastPart}');
-    $newFile = [System.Text.RegularExpressions.Regex]::Replace($newFile, $assemblyFileVersionRegex, '${firstPart}' + $AssemblyFileVersion + '${lastPart}');
-    $newFile = [System.Text.RegularExpressions.Regex]::Replace($newFile, $assemblyInformationalVersionRegex, '${firstPart}' + $AssemblyInformationalVersion + '${lastPart}');
+    if ($newFile -ne $originalFile)
+    {
+        Write-Host "  Set AssemblyVersion to '$AssemblyVersion'";
+    }
+
+    [string]$newFile2 = [System.Text.RegularExpressions.Regex]::Replace($newFile, $assemblyFileVersionRegex, '${firstPart}' + $AssemblyFileVersion + '${lastPart}');
+    if ($newFile2 -ne $newFile)
+    {
+        Write-Host "  Set AssemblyFileVersion to '$AssemblyFileVersion'";
+    }
+
+    [string]$newFile3 = [System.Text.RegularExpressions.Regex]::Replace($newFile2, $assemblyInformationalVersionRegex, '${firstPart}' + $AssemblyInformationalVersion + '${lastPart}');
+    if ($newFile3 -ne $newFile2)
+    {
+        Write-Host "  Set AssemblyInformationalVersion to '$AssemblyInformationalVersion'";
+    }
 
     if ($newFile -ne $originalFile)
     {
         [System.IO.File]::WriteAllText($AssemblyInfoFile, $newFile);
-        Write-Host "Version numbers updated in '$AssemblyInfoFile'.";
         $true;
     }
     else
@@ -61,6 +74,7 @@ function StampVersionsInNetstandardCsprojFile
     foreach ($versionNode in $versionNodes)
     {
         $versionNode.InnerText = $AssemblyInformationalVersion;
+        Write-Host "  Set /Project/PropertyGroup/Version to '$AssemblyInformationalVersion'";
     }
 
     # Set /Project/PropertyGroup/VersionPrefix elements to $AssemblyVersion
@@ -68,6 +82,7 @@ function StampVersionsInNetstandardCsprojFile
     foreach ($versionNode in $versionNodes)
     {
         $versionNode.InnerText = $AssemblyVersion;
+        Write-Host "  Set /Project/PropertyGroup/VersionPrefix to '$AssemblyVersion'";
     }
 
     # Set /Project/PropertyGroup/VersionSuffix elements to $AssemblyInformationalVersionSuffix
@@ -75,6 +90,7 @@ function StampVersionsInNetstandardCsprojFile
     foreach ($versionNode in $versionNodes)
     {
         $versionNode.InnerText = $AssemblyInformationalVersionSuffix;
+        Write-Host "  Set /Project/PropertyGroup/VersionSuffix to '$AssemblyInformationalVersionSuffix'";
     }
 
     # Set /Project/PropertyGroup/FileVersion elements to $AssemblyFileVersion
@@ -82,6 +98,15 @@ function StampVersionsInNetstandardCsprojFile
     foreach ($versionNode in $versionNodes)
     {
         $versionNode.InnerText = $AssemblyFileVersion;
+        Write-Host "  Set /Project/PropertyGroup/FileVersion to '$AssemblyFileVersion'";
+    }
+
+    # Set /Project/PropertyGroup/PackageVersion elements to $AssemblyInformationalVersion
+    $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'PackageVersion']");
+    foreach ($versionNode in $versionNodes)
+    {
+        $versionNode.InnerText = $AssemblyInformationalVersion;
+        Write-Host "  Set /Project/PropertyGroup/PackageVersion to '$AssemblyInformationalVersion'";
     }
 
     [string]$newXml = $xml.OuterXml;
@@ -89,7 +114,6 @@ function StampVersionsInNetstandardCsprojFile
     if ($newXml -ne $originalXml)
     {
         [System.IO.File]::WriteAllText($CsprojFile, $newXml);
-        Write-Host "Version numbers updated in '$CsprojFile'.";
         $true;
     }
     else
@@ -105,16 +129,28 @@ function StampVersionsInNuSpecFile
         [string]$Version
     )
 
-    [string]$originalFile = [System.IO.File]::ReadAllText($NuspecFile);
+    [string]$originalXml = [System.IO.File]::ReadAllText($CsprojFile);
 
-    [string]$versionRegex = "<version>(?<version>[^\<]*)</version>";
-    
-    [string]$newFile = [System.Text.RegularExpressions.Regex]::Replace($originalFile, $versionRegex, "<version>$Version</version>");
+    $xml = New-Object System.Xml.XmlDocument;
+    $xml.PreserveWhitespace = $true;
+    $xml.LoadXml($originalXml);
 
-    if ($newFile -ne $originalFile)
+    # Set /Project/PropertyGroup/FileVersion elements to $AssemblyFileVersion
+    $versionNodes = $xml.SelectNodes("/*[local-name() = 'package']/*[local-name() = 'metadata']/*[local-name() = 'version']");
+    foreach ($versionNode in $versionNodes)
+    {
+        $versionNode.InnerText = $Version;
+        Write-Host "  Set /package/metadata/version to '$Version'";
+    }
+
     {
         [System.IO.File]::WriteAllText($NuspecFile, $newFile);
         Write-Host "Version numbers updated in '$NuspecFile'.";
+    [string]$newXml = $xml.OuterXml;
+
+    if ($newXml -ne $originalXml)
+    {
+        [System.IO.File]::WriteAllText($CsprojFile, $newXml);
         $true;
     }
     else
@@ -140,6 +176,7 @@ function StampVersionsInVsixmanifestFile
     foreach ($identityNode in $identityNodes)
     {
         $identityNode.SetAttribute("Version", $Version);
+        Write-Host "  Set /PackageManifest/Metadata/Identity[Version] to '$Version'";
     }
 
     [string]$newXml = $xml.OuterXml;
@@ -147,7 +184,6 @@ function StampVersionsInVsixmanifestFile
     if ($newFile -ne $originalXml)
     {
         [System.IO.File]::WriteAllText($VsixmanifestFile, $newXml);
-        Write-Host "Version numbers updated in '$VsixmanifestFile'.";
         $true;
     }
     else
@@ -173,6 +209,8 @@ function StampVersions
     # Update *AssemblyInfo.cs files
     foreach ($assemblyInfoFile in [System.IO.Directory]::EnumerateFiles($Directory, "*AssemblyInfo.cs", [System.IO.SearchOption]::AllDirectories))
     {
+        Write-Host "Looking for version information to update in '$assemblyInfoFile'...";
+
         [bool]$wasFileUpdated = StampVersionsInAssemblyInfoFile -AssemblyInfoFile $assemblyInfoFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
@@ -180,20 +218,26 @@ function StampVersions
     # Update *.csproj files
     foreach ($csprojFile in [System.IO.Directory]::EnumerateFiles($Directory, "*.csproj", [System.IO.SearchOption]::AllDirectories))
     {
-        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion -AssemblyInformationalVersionSuffix $AssemblyInformationalVersionSuffix;
+        Write-Host "Looking for version information to update in '$csprojFile'...";
+
+        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion -AssemblyInformationalVersionSuffix $AssemblyInformationalVersionSuffix -ShouldStampReleaseNotes $ShouldStampReleaseNotes -ReleaseNotes $ReleaseNotes;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
 
     # Update *.nuspec files
     foreach ($nuspecFile in [System.IO.Directory]::EnumerateFiles($Directory, "*.nuspec", [System.IO.SearchOption]::AllDirectories))
     {
-        [bool]$wasFileUpdated = StampVersionsInNuspecFile -NuspecFile $nuspecFile -Version $AssemblyInformationalVersion;
+        Write-Host "Looking for version information to update in '$nuspecFile'...";
+
+        [bool]$wasFileUpdated = StampVersionsInNuspecFile -NuspecFile $nuspecFile -Version $AssemblyInformationalVersion -ShouldStampReleaseNotes $ShouldStampReleaseNotes -ReleaseNotes $ReleaseNotes;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
 
     # Update *.vsixmanifest files
     foreach ($vsixmanifestFile in [System.IO.Directory]::EnumerateFiles($Directory, "*.vsixmanifest", [System.IO.SearchOption]::AllDirectories))
     {
+        Write-Host "Looking for version information to update in '$vsixmanifestFile'...";
+
         [bool]$wasFileUpdated = StampVersionsInVsixmanifestFile -VsixmanifestFile $vsixmanifestFile -Version $AssemblyFileVersion;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
