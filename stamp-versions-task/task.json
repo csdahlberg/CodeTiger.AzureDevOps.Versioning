@@ -78,8 +78,7 @@
             "label": "Create Prerelease Version?",
             "defaultValue": "false",
             "required": false,
-            "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files.",
-            "groupName": "releaseNotes"
+            "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files."
         },
         {
             "name": "PrereleaseLabel",
