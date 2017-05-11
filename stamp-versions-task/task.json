@@ -76,7 +76,7 @@
             "name": "ShouldCreatePrereleaseVersion",
             "type": "boolean",
             "label": "Create Prerelease Version?",
-            "defaultValue": "true",
+            "defaultValue": true,
             "required": true,
             "helpMarkDown": "Indicates whether 'Prerelease Label' should be included in NuGet package and assembly informational versions."
         },
@@ -93,7 +93,7 @@
             "name": "ShouldSetReleaseNotes",
             "type": "boolean",
             "label": "Set Release Notes?",
-            "defaultValue": "false",
+            "defaultValue": false,
             "required": true,
             "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files.",
             "groupName": "releaseNotes"
@@ -116,7 +116,7 @@
             "name": "ShouldOverrideAssemblyFileVersionRevision",
             "type": "boolean",
             "label": "Override the revision used for AssemblyFileVersion?",
-            "defaultValue": "false",
+            "defaultValue": false,
             "required": true,
             "helpMarkDown": "Indicates whether 'AssemblyFileVersion Revision Override' should be used instead of a calculated value when determining AssemblyFileVersion.",
             "groupName": "revisionOverrides"
@@ -134,8 +134,8 @@
         {
             "name": "ShouldOverridePackagePrereleaseVersionRevision",
             "type": "boolean",
-            "label": "Override the revision used for AssemblyFileVersion?",
-            "defaultValue": "false",
+            "label": "Override the revision used for prerelease package versions?",
+            "defaultValue": false,
             "required": true,
             "helpMarkDown": "Indicates whether 'Package Prerelease Version Revision Override' should be used instead of a calculated value when determining a prerelease NuGet package version.",
             "groupName": "revisionOverrides"
