@@ -4,13 +4,13 @@
     [int]$MajorVersion,
     [int]$MinorVersion,
     [int]$PatchVersion,
-    [bool]$ShouldCreatePrereleaseVersion,
+    [string]$ShouldCreatePrereleaseVersion = "true",
     [string]$PrereleaseLabel = $null,
-    [bool]$ShouldSetReleaseNotes,
+    [string]$ShouldSetReleaseNotes = "false",
     [string]$ReleaseNotes = $null,
-    [bool]$ShouldOverrideAssemblyFileVersionRevision,
+    [string]$ShouldOverrideAssemblyFileVersionRevision = "false",
     [int]$AssemblyFileVersionRevisionOverride = 0,
-    [bool]$ShouldOverridePackagePrereleaseVersionRevision,
+    [string]$ShouldOverridePackagePrereleaseVersionRevision = "false",
     [int]$PackagePrereleaseVersionRevisionOverride = 0
 )
 
@@ -490,7 +490,12 @@ Add-Type -AssemblyName "System.Net.Http, Version=4.0.0.0, Culture=neutral, Publi
 Add-Type -AssemblyName "System.Web, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
 Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
 
-if ($ShouldUsePrereleaseLabel -and [string]::IsNullOrWhiteSpace($PrereleaseLabel))
+[bool]$ShouldCreatePrereleaseVersionAsBool = [System.Convert]::ToBoolean($ShouldCreatePrereleaseVersion);
+[bool]$ShouldSetReleaseNotesAsBool = [System.Convert]::ToBoolean($ShouldSetReleaseNotes);
+[bool]$ShouldOverrideAssemblyFileVersionRevisionAsBool = [System.Convert]::ToBoolean($ShouldOverrideAssemblyFileVersionRevision);
+[bool]$ShouldOverridePackagePrereleaseVersionRevisionAsBool = [System.Convert]::ToBoolean($ShouldOverridePackagePrereleaseVersionRevision);
+
+if ($ShouldCreatePrereleaseVersionAsBool -and [string]::IsNullOrWhiteSpace($PrereleaseLabel))
 {
     Write-Host "##vso[task.logissue type=error]ERROR: No Prerelease label was specified, but it is required because 'Create Prerelease Version?' is true.";
     Write-Host "##vso[task.complete result=Failed]DONE";
@@ -505,21 +510,21 @@ if ($ShouldUsePrereleaseLabel -and [string]::IsNullOrWhiteSpace($PrereleaseLabel
 
 [string]$assemblyVersion = "$MajorVersion.$MinorVersion.$PatchVersion.0";
 
-[int]$assemblyFileVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyFileVersion $MajorVersion.$MinorVersion.$dateNumber" -ShouldOverrideRevision $ShouldOverrideAssemblyFileVersionRevision -RevisionOverride $AssemblyFileVersionRevisionOverride;
+[int]$assemblyFileVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyFileVersion $MajorVersion.$MinorVersion.$dateNumber" -ShouldOverrideRevision $ShouldOverrideAssemblyFileVersionRevisionAsBool -RevisionOverride $AssemblyFileVersionRevisionOverride;
 [string]$assemblyFileVersion = "$MajorVersion.$MinorVersion.$dateNumber.$assemblyFileVersionRevision";
 
 [string]$assemblyInformationalVersionSuffix;
 [string]$assemblyInformationalVersion;
-if (-not $ShouldCreatePrereleaseVersion)
+if (-not $ShouldCreatePrereleaseVersionAsBool)
 {
     $assemblyInformationalVersionSuffix = $null;
     $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion";
 }
 else
 {
-    [int]$assemblyInformationalVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyInformationalVersion $MajorVersion.$MinorVersion.$PatchVersion-$PrereleaseLabel" -ShouldOverrideRevision $ShouldOverridePackagePrereleaseVersionRevision -RevisionOverride $PackagePrereleaseVersionRevisionOverride;
+    [int]$assemblyInformationalVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyInformationalVersion $MajorVersion.$MinorVersion.$PatchVersion-$PrereleaseLabel" -ShouldOverrideRevision $ShouldOverridePackagePrereleaseVersionRevisionAsBool -RevisionOverride $PackagePrereleaseVersionRevisionOverride;
     $assemblyInformationalVersionSuffix = $PrereleaseLabel + $assemblyInformationalVersionRevision.ToString("D2");
     $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion-$assemblyInformationalVersionSuffix";
 }
 
-StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion -ShouldSetReleaseNotes $ShouldSetReleaseNotes -ReleaseNotes $ReleaseNotes;
+StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion -ShouldSetReleaseNotes $ShouldSetReleaseNotesAsBool -ReleaseNotes $ReleaseNotes;
