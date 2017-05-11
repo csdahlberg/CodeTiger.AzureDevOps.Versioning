@@ -12,8 +12,8 @@
     "author": "Chris Dahlberg",
     "version": {
         "Major": 0,
-        "Minor": 9,
-        "Patch": 17
+        "Minor": 10,
+        "Patch": 0
     },
     "instanceNameFormat": "Stamp $(MajorVersion).$(MinorVersion).$(PatchVersion)",
     "groups": [
