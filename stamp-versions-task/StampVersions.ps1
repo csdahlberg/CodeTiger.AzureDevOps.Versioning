@@ -4,7 +4,10 @@
     [int]$MajorVersion,
     [int]$MinorVersion,
     [int]$PatchVersion,
+    [bool]$ShouldUsePrereleaseLabel = $false,
     [string]$PrereleaseLabel = $null,
+    [bool]$ShouldStampReleaseNotes = $false,
+    [string]$ReleaseNotes = $null,
     [int]$AssemblyFileVersionRevisionOverride,
     [int]$PackagePrereleaseRevisionOverride
 )
@@ -60,7 +63,9 @@ function StampVersionsInNetstandardCsprojFile
         [string]$AssemblyVersion,
         [string]$AssemblyFileVersion,
         [string]$AssemblyInformationalVersion,
-        [string]$AssemblyInformationalVersionSuffix
+        [string]$AssemblyInformationalVersionSuffix,
+        [bool]$ShouldStampReleaseNotes,
+        [string]$ReleaseNotes
     )
 
     [string]$originalXml = [System.IO.File]::ReadAllText($CsprojFile);
@@ -109,6 +114,17 @@ function StampVersionsInNetstandardCsprojFile
         Write-Host "  Set /Project/PropertyGroup/PackageVersion to '$AssemblyInformationalVersion'";
     }
 
+    if ($ShouldStampReleaseNotes)
+    {
+        # Set /Project/PropertyGroup/PackageReleaseNotes elements to $ReleaseNotes
+        $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'PackageReleaseNotes']");
+        foreach ($versionNode in $versionNodes)
+        {
+            $versionNode.InnerText = $ReleaseNotes;
+            Write-Host "  Set Project/PropertyGroup/PackageReleaseNotes to the specified release notes.";
+        }
+    }
+
     [string]$newXml = $xml.OuterXml;
 
     if ($newXml -ne $originalXml)
@@ -126,7 +142,9 @@ function StampVersionsInNuSpecFile
 {
     Param (
         [string]$NuspecFile,
-        [string]$Version
+        [string]$Version,
+        [bool]$ShouldStampReleaseNotes,
+        [string]$ReleaseNotes
     )
 
     [string]$originalXml = [System.IO.File]::ReadAllText($CsprojFile);
@@ -143,9 +161,17 @@ function StampVersionsInNuSpecFile
         Write-Host "  Set /package/metadata/version to '$Version'";
     }
 
+    if ($ShouldStampReleaseNotes)
     {
-        [System.IO.File]::WriteAllText($NuspecFile, $newFile);
-        Write-Host "Version numbers updated in '$NuspecFile'.";
+        # Set /Project/PropertyGroup/PackageReleaseNotes elements to $ReleaseNotes
+        $versionNodes = $xml.SelectNodes("/*[local-name() = 'package']/*[local-name() = 'metadata']/*[local-name() = 'releaseNotes']");
+        foreach ($versionNode in $versionNodes)
+        {
+            $versionNode.InnerText = $ReleaseNotes;
+            Write-Host "  Set /package/metadata/releaseNotes to the specified release notes.";
+        }
+    }
+
     [string]$newXml = $xml.OuterXml;
 
     if ($newXml -ne $originalXml)
@@ -199,7 +225,9 @@ function StampVersions
         [string]$AssemblyVersion,
         [string]$AssemblyFileVersion,
         [string]$AssemblyInformationalVersion,
-        [string]$AssemblyInformationalVersionSuffix
+        [string]$AssemblyInformationalVersionSuffix,
+        [bool]$ShouldStampReleaseNotes,
+        [string]$ReleaseNotes
     )
 
     Write-Host "Searching for files in '$Directory' to stamp version info in...";
@@ -459,6 +487,13 @@ Add-Type -AssemblyName "System.Net.Http, Version=4.0.0.0, Culture=neutral, Publi
 Add-Type -AssemblyName "System.Web, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a";
 Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089";
 
+if ($ShouldUsePrereleaseLabel -and [string]::IsNullOrWhiteSpace($PrereleaseLabel))
+{
+    Write-Host "##vso[task.logissue type=error]ERROR: No Prerelease label was specified, but it is required because 'Create Prerelease Version?' is true.";
+    Write-Host "##vso[task.complete result=Failed]DONE";
+    Exit;
+}
+
 # The build date number is the number of days since 2000-01-01
 [System.DateTime]$dateNumberStart = (New-Object -TypeName System.DateTime -ArgumentList 2000,1,1,0,0,0).ToUniversalTime();
 [System.DateTime]$dateNumberEnd = [System.DateTime]::UtcNow;
@@ -472,7 +507,7 @@ Add-Type -AssemblyName "System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyT
 
 [string]$assemblyInformationalVersionSuffix;
 [string]$assemblyInformationalVersion;
-if ([string]::IsNullOrWhiteSpace($PrereleaseLabel))
+if (-not $ShouldUsePrereleaseLabel)
 {
     $assemblyInformationalVersionSuffix = $null;
     $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion";
@@ -484,4 +519,4 @@ else
     $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion-$assemblyInformationalVersionSuffix";
 }
 
-StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion;
+StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion -ShouldStampReleaseNotes $ShouldStampReleaseNotes -ReleaseNotes $ReleaseNotes;

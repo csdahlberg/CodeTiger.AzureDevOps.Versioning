@@ -18,6 +18,11 @@
     "instanceNameFormat": "Stamp $(MajorVersion).$(MinorVersion).$(PatchVersion)",
     "groups": [
         {
+            "name": "releaseNotes",
+            "displayName": "Release Notes",
+            "isExpanded": false
+        },
+        {
             "name": "advanced",
             "displayName": "Advanced",
             "isExpanded": false
@@ -68,12 +73,39 @@
             "helpMarkDown": "The patch version (the third part of the version)."
         },
         {
+            "name": "ShouldCreatePrereleaseVersion",
+            "type": "boolean",
+            "label": "Create Prerelease Version?",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files.",
+            "groupName": "releaseNotes"
+        },
+        {
             "name": "PrereleaseLabel",
             "type": "string",
             "label": "Prerelease Label",
             "defaultValue": "",
             "required": false,
             "helpMarkDown": "The pre-release label to use (e.g. `beta`, `prerelease`, etc.), or blank if this is not a pre-release version."
+        },
+        {
+            "name": "ShouldSetReleaseNotes",
+            "type": "boolean",
+            "label": "Set Release Notes?",
+            "defaultValue": "false",
+            "required": false,
+            "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files.",
+            "groupName": "releaseNotes"
+        },
+        {
+            "name": "ReleaseNotes",
+            "type": "string",
+            "label": "Release Notes",
+            "defaultValue": "",
+            "required": false,
+            "helpMarkDown": "The release notes to set for NuGet packages.",
+            "groupName": "releaseNotes"
         },
         {
             "name": "AssemblyFileVersionRevisionOverride",
