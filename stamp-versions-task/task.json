@@ -20,11 +20,11 @@
         {
             "name": "releaseNotes",
             "displayName": "Release Notes",
-            "isExpanded": false
+            "isExpanded": true
         },
         {
-            "name": "advanced",
-            "displayName": "Advanced",
+            "name": "revisionOverrides",
+            "displayName": "Revision Overrides",
             "isExpanded": false
         }
     ],
@@ -100,31 +100,55 @@
         },
         {
             "name": "ReleaseNotes",
-            "type": "string",
+            "type": "multiLine",
             "label": "Release Notes",
             "defaultValue": "",
             "required": false,
             "visibleRule": "ShouldSetReleaseNotes = true",
             "helpMarkDown": "The release notes to set for NuGet packages.",
-            "groupName": "releaseNotes"
+            "groupName": "releaseNotes",
+            "properties": {
+                "resizable": true,
+                "rows": 10
+            }
+        },
+        {
+            "name": "ShouldOverrideAssemblyFileVersionRevision",
+            "type": "boolean",
+            "label": "Override the revision used for AssemblyFileVersion?",
+            "defaultValue": "false",
+            "required": true,
+            "helpMarkDown": "Indicates whether 'AssemblyFileVersion Revision Override' should be used instead of a calculated value when determining AssemblyFileVersion.",
+            "groupName": "revisionOverrides"
         },
         {
             "name": "AssemblyFileVersionRevisionOverride",
             "type": "string",
             "label": "AssemblyFileVersion Revision Override",
-            "defaultValue": "-1",
+            "defaultValue": "0",
             "required": false,
-            "helpMarkDown": "Overrides the revision (the fourth part of the version) to use for AssemblyFileVersion. Use the default value of `-1` to use auto-incrementing revisions.",
-            "groupName": "advanced"
+            "visibleRule": "ShouldOverrideAssemblyFileVersionRevision = true",
+            "helpMarkDown": "The revision (the fourth part of the version) to use for AssemblyFileVersion.",
+            "groupName": "revisionOverrides"
         },
         {
-            "name": "PackagePrereleaseRevisionOverride",
+            "name": "ShouldOverridePackagePrereleaseVersionRevision",
+            "type": "boolean",
+            "label": "Override the revision used for AssemblyFileVersion?",
+            "defaultValue": "false",
+            "required": true,
+            "helpMarkDown": "Indicates whether 'Package Prerelease Version Revision Override' should be used instead of a calculated value when determining a prerelease NuGet package version.",
+            "groupName": "revisionOverrides"
+        },
+        {
+            "name": "PackagePrereleaseVersionRevisionOverride",
             "type": "string",
-            "label": "Package Prerelease Revision Override",
-            "defaultValue": "-1",
+            "label": "Package Prerelease Version Revision Override",
+            "defaultValue": "0",
             "required": false,
-            "helpMarkDown": "The revision (the number after the PrereleaseLabel) to use for a prerelease package. Use the default value of `-1` to use auto-incrementing revisions.",
-            "groupName": "advanced"
+            "visibleRule": "ShouldOverridePackagePrereleaseVersionRevision = true",
+            "helpMarkDown": "The revision (the number after the PrereleaseLabel) to use for a prerelease package.",
+            "groupName": "revisionOverrides"
         }
     ],
     "execution": {

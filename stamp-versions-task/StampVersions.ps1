@@ -4,12 +4,14 @@
     [int]$MajorVersion,
     [int]$MinorVersion,
     [int]$PatchVersion,
-    [bool]$ShouldUsePrereleaseLabel = $false,
+    [bool]$ShouldCreatePrereleaseVersion,
     [string]$PrereleaseLabel = $null,
-    [bool]$ShouldStampReleaseNotes = $false,
+    [bool]$ShouldSetReleaseNotes,
     [string]$ReleaseNotes = $null,
-    [int]$AssemblyFileVersionRevisionOverride,
-    [int]$PackagePrereleaseRevisionOverride
+    [bool]$ShouldOverrideAssemblyFileVersionRevision,
+    [int]$AssemblyFileVersionRevisionOverride = 0,
+    [bool]$ShouldOverridePackagePrereleaseVersionRevision,
+    [int]$PackagePrereleaseVersionRevisionOverride = 0
 )
 
 function StampVersionsInAssemblyInfoFile
@@ -64,7 +66,7 @@ function StampVersionsInNetstandardCsprojFile
         [string]$AssemblyFileVersion,
         [string]$AssemblyInformationalVersion,
         [string]$AssemblyInformationalVersionSuffix,
-        [bool]$ShouldStampReleaseNotes,
+        [bool]$ShouldSetReleaseNotes,
         [string]$ReleaseNotes
     )
 
@@ -114,7 +116,7 @@ function StampVersionsInNetstandardCsprojFile
         Write-Host "  Set /Project/PropertyGroup/PackageVersion to '$AssemblyInformationalVersion'";
     }
 
-    if ($ShouldStampReleaseNotes)
+    if ($ShouldSetReleaseNotes)
     {
         # Set /Project/PropertyGroup/PackageReleaseNotes elements to $ReleaseNotes
         $versionNodes = $xml.SelectNodes("/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'PackageReleaseNotes']");
@@ -143,7 +145,7 @@ function StampVersionsInNuSpecFile
     Param (
         [string]$NuspecFile,
         [string]$Version,
-        [bool]$ShouldStampReleaseNotes,
+        [bool]$ShouldSetReleaseNotes,
         [string]$ReleaseNotes
     )
 
@@ -161,7 +163,7 @@ function StampVersionsInNuSpecFile
         Write-Host "  Set /package/metadata/version to '$Version'";
     }
 
-    if ($ShouldStampReleaseNotes)
+    if ($ShouldSetReleaseNotes)
     {
         # Set /Project/PropertyGroup/PackageReleaseNotes elements to $ReleaseNotes
         $versionNodes = $xml.SelectNodes("/*[local-name() = 'package']/*[local-name() = 'metadata']/*[local-name() = 'releaseNotes']");
@@ -226,7 +228,7 @@ function StampVersions
         [string]$AssemblyFileVersion,
         [string]$AssemblyInformationalVersion,
         [string]$AssemblyInformationalVersionSuffix,
-        [bool]$ShouldStampReleaseNotes,
+        [bool]$ShouldSetReleaseNotes,
         [string]$ReleaseNotes
     )
 
@@ -248,7 +250,7 @@ function StampVersions
     {
         Write-Host "Looking for version information to update in '$csprojFile'...";
 
-        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion -AssemblyInformationalVersionSuffix $AssemblyInformationalVersionSuffix -ShouldStampReleaseNotes $ShouldStampReleaseNotes -ReleaseNotes $ReleaseNotes;
+        [bool]$wasFileUpdated = StampVersionsInNetstandardCsprojFile -CsprojFile $csprojFile -AssemblyVersion $AssemblyVersion -AssemblyFileVersion $AssemblyFileVersion -AssemblyInformationalVersion $AssemblyInformationalVersion -AssemblyInformationalVersionSuffix $AssemblyInformationalVersionSuffix -ShouldSetReleaseNotes $ShouldSetReleaseNotes -ReleaseNotes $ReleaseNotes;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
 
@@ -257,7 +259,7 @@ function StampVersions
     {
         Write-Host "Looking for version information to update in '$nuspecFile'...";
 
-        [bool]$wasFileUpdated = StampVersionsInNuspecFile -NuspecFile $nuspecFile -Version $AssemblyInformationalVersion -ShouldStampReleaseNotes $ShouldStampReleaseNotes -ReleaseNotes $ReleaseNotes;
+        [bool]$wasFileUpdated = StampVersionsInNuspecFile -NuspecFile $nuspecFile -Version $AssemblyInformationalVersion -ShouldSetReleaseNotes $ShouldSetReleaseNotes -ReleaseNotes $ReleaseNotes;
         $wereAnyFilesUpdated = $wereAnyFilesUpdated -or $wasFileUpdated;
     }
 
@@ -281,6 +283,7 @@ function CreateOrIncrementRevision
     Param (
         [string]$ProductName,
         [string]$RevisionKey,
+        [bool]$ShouldOverrideRevision,
         [int]$RevisionOverride
         )
 
@@ -330,7 +333,7 @@ function CreateOrIncrementRevision
                     # The version has a revision set for it, so it will be updated
 
                     [int]$currentRevision = $revisionInformation.$urlEncodedRevisionKey;
-                    if ($RevisionOverride -lt 0)
+                    if (-not $ShouldOverrideRevision)
                     {
                         [int]$newRevision = $currentRevision + 1;
                         $revisionInformation.$urlEncodedRevisionKey = $newRevision;
@@ -346,7 +349,7 @@ function CreateOrIncrementRevision
                 {
                     # The version does not have a revision set for it, so it will be created.
 
-                    if ($RevisionOverride -lt 0)
+                    if (-not $ShouldOverrideRevision)
                     {
                         $revisionInformation | Add-Member -Name $urlEncodedRevisionKey -MemberType NoteProperty -Value 1;
                         Write-Host "A revision of '1' will be created for '$RevisionKey'.";
@@ -400,7 +403,7 @@ function CreateOrIncrementRevision
                 # The product does not have any existing revision information, so it will be created
 
                 [int]$newRevision = 0;
-                if ($RevisionOverride -lt 0)
+                if (-not $ShouldOverrideRevision)
                 {
                     $newRevision = 1;
                     Write-Host "No revision information was found for '$ProductName'. Creating a revision for '$RevisionKey' with a value of 1...";
@@ -502,21 +505,21 @@ if ($ShouldUsePrereleaseLabel -and [string]::IsNullOrWhiteSpace($PrereleaseLabel
 
 [string]$assemblyVersion = "$MajorVersion.$MinorVersion.$PatchVersion.0";
 
-[int]$assemblyFileVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyFileVersion $MajorVersion.$MinorVersion.$dateNumber" -RevisionOverride $AssemblyFileVersionRevisionOverride;
+[int]$assemblyFileVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyFileVersion $MajorVersion.$MinorVersion.$dateNumber" -ShouldOverrideRevision $ShouldOverrideAssemblyFileVersionRevision -RevisionOverride $AssemblyFileVersionRevisionOverride;
 [string]$assemblyFileVersion = "$MajorVersion.$MinorVersion.$dateNumber.$assemblyFileVersionRevision";
 
 [string]$assemblyInformationalVersionSuffix;
 [string]$assemblyInformationalVersion;
-if (-not $ShouldUsePrereleaseLabel)
+if (-not $ShouldCreatePrereleaseVersion)
 {
     $assemblyInformationalVersionSuffix = $null;
     $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion";
 }
 else
 {
-    [int]$assemblyInformationalVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyInformationalVersion $MajorVersion.$MinorVersion.$PatchVersion-$PrereleaseLabel" -RevisionOverride $PackagePrereleaseRevisionOverride;
+    [int]$assemblyInformationalVersionRevision = CreateOrIncrementRevision -ProductName $ProductName -RevisionKey "AssemblyInformationalVersion $MajorVersion.$MinorVersion.$PatchVersion-$PrereleaseLabel" -ShouldOverrideRevision $ShouldOverridePackagePrereleaseVersionRevision -RevisionOverride $PackagePrereleaseVersionRevisionOverride;
     $assemblyInformationalVersionSuffix = $PrereleaseLabel + $assemblyInformationalVersionRevision.ToString("D2");
     $assemblyInformationalVersion = "$MajorVersion.$MinorVersion.$PatchVersion-$assemblyInformationalVersionSuffix";
 }
 
-StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion -ShouldStampReleaseNotes $ShouldStampReleaseNotes -ReleaseNotes $ReleaseNotes;
+StampVersions -Directory $SourcesDirectory -AssemblyVersion $assemblyVersion -AssemblyFileVersion $assemblyFileVersion -AssemblyInformationalVersionSuffix $assemblyInformationalVersionSuffix -AssemblyInformationalVersion $assemblyInformationalVersion -ShouldSetReleaseNotes $ShouldSetReleaseNotes -ReleaseNotes $ReleaseNotes;
