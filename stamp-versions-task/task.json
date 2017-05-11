@@ -76,24 +76,25 @@
             "name": "ShouldCreatePrereleaseVersion",
             "type": "boolean",
             "label": "Create Prerelease Version?",
-            "defaultValue": "false",
-            "required": false,
-            "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files."
+            "defaultValue": "true",
+            "required": true,
+            "helpMarkDown": "Indicates whether 'Prerelease Label' should be included in NuGet package and assembly informational versions."
         },
         {
             "name": "PrereleaseLabel",
             "type": "string",
             "label": "Prerelease Label",
-            "defaultValue": "",
+            "defaultValue": "prerelease",
             "required": false,
-            "helpMarkDown": "The pre-release label to use (e.g. `beta`, `prerelease`, etc.), or blank if this is not a pre-release version."
+            "visibleRule": "ShouldCreatePrereleaseVersion = true",
+            "helpMarkDown": "The pre-release label to use (e.g. `beta`, `prerelease`, etc.)."
         },
         {
             "name": "ShouldSetReleaseNotes",
             "type": "boolean",
             "label": "Set Release Notes?",
             "defaultValue": "false",
-            "required": false,
+            "required": true,
             "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files.",
             "groupName": "releaseNotes"
         },
@@ -103,6 +104,7 @@
             "label": "Release Notes",
             "defaultValue": "",
             "required": false,
+            "visibleRule": "ShouldSetReleaseNotes = true",
             "helpMarkDown": "The release notes to set for NuGet packages.",
             "groupName": "releaseNotes"
         },
