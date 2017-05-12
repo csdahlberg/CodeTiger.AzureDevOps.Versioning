@@ -149,7 +149,7 @@ function StampVersionsInNuSpecFile
         [string]$ReleaseNotes
     )
 
-    [string]$originalXml = [System.IO.File]::ReadAllText($CsprojFile);
+    [string]$originalXml = [System.IO.File]::ReadAllText($NuspecFile);
 
     $xml = New-Object System.Xml.XmlDocument;
     $xml.PreserveWhitespace = $true;
@@ -178,7 +178,7 @@ function StampVersionsInNuSpecFile
 
     if ($newXml -ne $originalXml)
     {
-        [System.IO.File]::WriteAllText($CsprojFile, $newXml);
+        [System.IO.File]::WriteAllText($NuspecFile, $newXml);
         $true;
     }
     else
