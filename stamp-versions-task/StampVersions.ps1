@@ -47,9 +47,9 @@ function StampVersionsInAssemblyInfoFile
         Write-Host "  Set AssemblyInformationalVersion to '$AssemblyInformationalVersion'";
     }
 
-    if ($newFile -ne $originalFile)
+    if ($newFile3 -ne $originalFile)
     {
-        [System.IO.File]::WriteAllText($AssemblyInfoFile, $newFile);
+        [System.IO.File]::WriteAllText($AssemblyInfoFile, $newFile3);
         $true;
     }
     else
