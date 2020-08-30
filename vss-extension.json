@@ -4,7 +4,7 @@
     "id": "versioning",
     "name": "CodeTiger Versioning",
     "version": "0.10.11",
-    "description": "",
+    "description": "Provides build tasks related to versioning of projects and packages.",
     "categories": [
         "Build and release"
     ],
