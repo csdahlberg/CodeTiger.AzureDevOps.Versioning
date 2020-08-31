@@ -1,0 +1,159 @@
+{
+    "$schema": "https://raw.githubusercontent.com/AArnott/vso-agent-tasks/9b41d803a/tasks.schema.json",
+    "id": "C6D4C637-19DB-4702-AB1A-6CDCDBC20176",
+    "name": "stamp-versions-task",
+    "friendlyName": "Stamp Version Information",
+    "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, *.vsixmanifest, and *.csproj files.",
+    "helpMarkDown": "`AssemblyVersion` attributes will be set to `{majorVersion}.{minorVersion}.{patchVersion}.0`. `AssemblyFileVersion` attributes will be set to `{majorVersion}.{minorVersion}.{dateStamp}.{revision}`. `AssemblyInformationalVersion` attributes, NuGet package versions, and VSIX versions will be set to either `{majorVersion}.{minorVersion}.{patchVersion}` or `{majorVersion}.{minorVersion}.{patchVersion}-{prereleaseLabel}{prereleaseRevision}`.",
+    "category": "Build",
+    "visibility": [
+        "Build"
+    ],
+    "author": "Chris Dahlberg",
+    "version": {
+        "Major": 1,
+        "Minor": 0,
+        "Patch": 26
+    },
+    "instanceNameFormat": "Stamp $(MajorVersion).$(MinorVersion).$(PatchVersion)",
+    "groups": [
+        {
+            "name": "releaseNotes",
+            "displayName": "Release Notes",
+            "isExpanded": true
+        },
+        {
+            "name": "revisionOverrides",
+            "displayName": "Revision Overrides",
+            "isExpanded": false
+        }
+    ],
+    "inputs": [
+        {
+            "name": "SourcesDirectory",
+            "type": "filePath",
+            "label": "Sources Directory",
+            "defaultValue": "$(Build.SourcesDirectory)",
+            "required": true,
+            "helpMarkDown": "The directory containing files to stamp version numbers in."
+        },
+        {
+            "name": "ProductName",
+            "type": "string",
+            "label": "Product Name",
+            "defaultValue": "$(System.TeamProject)",
+            "required": true,
+            "helpMarkDown": "The name of the product being versioned. This is used when generating unique revision numbers.",
+            "properties": {
+                "maxLength": 50
+            }
+        },
+        {
+            "name": "MajorVersion",
+            "type": "string",
+            "label": "Major Version",
+            "defaultValue": "0",
+            "required": true,
+            "helpMarkDown": "The major version (the first part of the version)."
+        },
+        {
+            "name": "MinorVersion",
+            "type": "string",
+            "label": "Minor Version",
+            "defaultValue": "0",
+            "required": true,
+            "helpMarkDown": "The minor version (the second part of the version)."
+        },
+        {
+            "name": "PatchVersion",
+            "type": "string",
+            "label": "Patch Version",
+            "defaultValue": "1",
+            "required": true,
+            "helpMarkDown": "The patch version (the third part of the version)."
+        },
+        {
+            "name": "ShouldCreatePrereleaseVersion",
+            "type": "boolean",
+            "label": "Create Prerelease Version?",
+            "defaultValue": true,
+            "required": true,
+            "helpMarkDown": "Indicates whether 'Prerelease Label' should be included in NuGet package and assembly informational versions."
+        },
+        {
+            "name": "PrereleaseLabel",
+            "type": "string",
+            "label": "Prerelease Label",
+            "defaultValue": "prerelease",
+            "required": false,
+            "visibleRule": "ShouldCreatePrereleaseVersion = true",
+            "helpMarkDown": "The pre-release label to use (e.g. `beta`, `prerelease`, etc.)."
+        },
+        {
+            "name": "ShouldSetReleaseNotes",
+            "type": "boolean",
+            "label": "Set Release Notes?",
+            "defaultValue": false,
+            "required": true,
+            "helpMarkDown": "Indicates whether release notes for NuGet packages should be set in .nuspec and .csproj files.",
+            "groupName": "releaseNotes"
+        },
+        {
+            "name": "ReleaseNotes",
+            "type": "multiLine",
+            "label": "Release Notes",
+            "defaultValue": "",
+            "required": false,
+            "visibleRule": "ShouldSetReleaseNotes = true",
+            "helpMarkDown": "The release notes to set for NuGet packages.",
+            "groupName": "releaseNotes",
+            "properties": {
+                "resizable": true,
+                "rows": 10
+            }
+        },
+        {
+            "name": "ShouldOverrideAssemblyFileVersionRevision",
+            "type": "boolean",
+            "label": "Override the revision used for AssemblyFileVersion?",
+            "defaultValue": false,
+            "required": true,
+            "helpMarkDown": "Indicates whether 'AssemblyFileVersion Revision Override' should be used instead of a calculated value when determining AssemblyFileVersion.",
+            "groupName": "revisionOverrides"
+        },
+        {
+            "name": "AssemblyFileVersionRevisionOverride",
+            "type": "string",
+            "label": "AssemblyFileVersion Revision Override",
+            "defaultValue": "0",
+            "required": false,
+            "visibleRule": "ShouldOverrideAssemblyFileVersionRevision = true",
+            "helpMarkDown": "The revision (the fourth part of the version) to use for AssemblyFileVersion.",
+            "groupName": "revisionOverrides"
+        },
+        {
+            "name": "ShouldOverridePackagePrereleaseVersionRevision",
+            "type": "boolean",
+            "label": "Override the revision used for prerelease package versions?",
+            "defaultValue": false,
+            "required": true,
+            "helpMarkDown": "Indicates whether 'Package Prerelease Version Revision Override' should be used instead of a calculated value when determining a prerelease NuGet package version.",
+            "groupName": "revisionOverrides"
+        },
+        {
+            "name": "PackagePrereleaseVersionRevisionOverride",
+            "type": "string",
+            "label": "Package Prerelease Version Revision Override",
+            "defaultValue": "0",
+            "required": false,
+            "visibleRule": "ShouldOverridePackagePrereleaseVersionRevision = true",
+            "helpMarkDown": "The revision (the number after the PrereleaseLabel) to use for a prerelease package.",
+            "groupName": "revisionOverrides"
+        }
+    ],
+    "execution": {
+        "Node10": {
+            "target": "index.js"
+        }
+    }
+}
