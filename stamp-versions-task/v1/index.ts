@@ -131,7 +131,8 @@ async function stampVersionsInNetstandardCsprojFile(
     assemblyInformationalVersion : string,
     assemblyInformationalVersionSuffix : string | null,
     shouldSetReleaseNotes : boolean,
-    releaseNotes : string | null) : Promise<boolean>
+    releaseNotes : string | null,
+    sourceVersion : string | null) : Promise<boolean>
 {
     logDebug(`Looking for version information to update in '${csprojFile}'...`);
 
@@ -195,6 +196,14 @@ async function stampVersionsInNetstandardCsprojFile(
         }
     }
 
+    versionNodes = xpath.select(
+        "/*[local-name() = 'Project']/*[local-name() = 'PropertyGroup']/*[local-name() = 'RepositoryCommit']", doc);
+    for (let versionNode of versionNodes as Array<Node>)
+    {
+        versionNode.textContent = sourceVersion;
+        console.log(`Set Project/PropertyGroup/RepositoryCommit to '${sourceVersion}' in '${csprojFile}'.`);
+    }
+
     const newContent = doc.toString();
 
     if (newContent !== originalContent)
@@ -213,14 +222,15 @@ async function stampVersionsInNuspecFile(
     nuspecFile : string,
     version : string,
     shouldSetReleaseNotes : boolean,
-    releaseNotes : string | null) : Promise<boolean>
+    releaseNotes : string | null,
+    sourceVersion : string | null) : Promise<boolean>
 {
     logDebug(`Looking for version information to update in '${nuspecFile}'...`);
 
     const originalContent = await fs.readFile(nuspecFile, "binary");
     const doc = new xmldom.DOMParser().parseFromString(originalContent);
     
-    // Set /Project/PropertyGroup/FileVersion elements to assemblyFileVersion
+    // Set /package/metadata/version elements to version
     let versionNodes = xpath
         .select("/*[local-name() = 'package']/*[local-name() = 'metadata']/*[local-name() = 'version']", doc);
     for (let versionNode of versionNodes as Array<Node>)
@@ -231,13 +241,26 @@ async function stampVersionsInNuspecFile(
 
     if (shouldSetReleaseNotes)
     {
-        // Set /Project/PropertyGroup/PackageReleaseNotes elements to releaseNotes
+        // Set /package/metadata/releaseNotes elements to releaseNotes
         let versionNodes = xpath
             .select("/*[local-name() = 'package']/*[local-name() = 'metadata']/*[local-name() = 'releaseNotes']", doc);
         for (let versionNode of versionNodes as Array<Node>)
         {
             versionNode.textContent = releaseNotes;
             console.log(`Set /package/metadata/releaseNotes to '${releaseNotes}' in '${nuspecFile}'.`);
+        }
+    }
+
+    // Set /package/metadata/repository/@commit attributes to sourceVersion
+    let repositoryNodes = xpath
+        .select("/*[local-name() = 'package']/*[local-name() = 'metadata']/*[local-name() = 'repository']", doc);
+    for (const repositoryNode of repositoryNodes as Array<Node>)
+    {
+        const commitAttribute = xpath.select1("@commit", repositoryNode) as Attr;
+        if (commitAttribute)
+        {
+            commitAttribute.value = sourceVersion || "";
+            console.log(`Set /package/metadata/repository/@commit to '${version}' in '${nuspecFile}'.`);
         }
     }
 
@@ -401,7 +424,8 @@ async function stampVersions(
     assemblyInformationalVersion : string,
     assemblyInformationalVersionSuffix : string | null,
     shouldSetReleaseNotes : boolean,
-    releaseNotes : string | null) : Promise<void>
+    releaseNotes : string | null,
+    sourceVersion : string | null) : Promise<void>
 {
     const sourcesDirectory = tl.getPathInput("SourcesDirectory", true)!;
 
@@ -423,7 +447,7 @@ async function stampVersions(
     files = tl.match(allPaths, '**/*.csproj');
     for (let csprojFile of files)
     {
-        const wasFileUpdated = await stampVersionsInNetstandardCsprojFile(csprojFile, assemblyVersion, assemblyFileVersion, assemblyInformationalVersion, assemblyInformationalVersionSuffix, shouldSetReleaseNotes, releaseNotes)
+        const wasFileUpdated = await stampVersionsInNetstandardCsprojFile(csprojFile, assemblyVersion, assemblyFileVersion, assemblyInformationalVersion, assemblyInformationalVersionSuffix, shouldSetReleaseNotes, releaseNotes, sourceVersion)
         if (wasFileUpdated) { wereAnyFilesUpdated = true; }
     }
 
@@ -431,7 +455,7 @@ async function stampVersions(
     files = tl.match(allPaths, '**/*.nuspec');
     for (let nuspecFile of files)
     {
-        const wasFileUpdated = await stampVersionsInNuspecFile(nuspecFile, assemblyInformationalVersion, shouldSetReleaseNotes, releaseNotes);
+        const wasFileUpdated = await stampVersionsInNuspecFile(nuspecFile, assemblyInformationalVersion, shouldSetReleaseNotes, releaseNotes, sourceVersion);
         if (wasFileUpdated) { wereAnyFilesUpdated = true; }
     }
 
@@ -463,6 +487,7 @@ async function run()
         const prereleaseLabel = tl.getInput("PrereleaseLabel");
         const shouldSetReleaseNotes = tl.getBoolInput("ShouldSetReleaseNotes") ?? false;
         const releaseNotes = tl.getInput("ReleaseNotes") ?? null;
+        const sourceVersion = process.env["BUILD_SOURCEVERSION"] ?? null;
         const shouldOverrideAssemblyFileVersionRevision
             = tl.getBoolInput("ShouldOverrideAssemblyFileVersionRevision") ?? false;
         const assemblyFileVersionRevisionOverride = parseNumberOrDefault(tl.getInput("AssemblyFileVersionRevisionOverride"));
@@ -509,7 +534,7 @@ async function run()
         }
 
         await stampVersions(assemblyVersion, assemblyFileVersion, assemblyInformationalVersion,
-            assemblyInformationalVersionSuffix, shouldSetReleaseNotes, releaseNotes);
+            assemblyInformationalVersionSuffix, shouldSetReleaseNotes, releaseNotes, sourceVersion);
     }
     catch (err)
     {
