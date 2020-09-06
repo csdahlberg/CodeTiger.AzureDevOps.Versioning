@@ -1,6 +1,6 @@
 {
   "name": "stamp-versions-task",
-  "version": "1.0.28",
+  "version": "1.0.30",
   "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, *.vsixmanifest, and *.csproj files.",
   "keywords": [
     "version",

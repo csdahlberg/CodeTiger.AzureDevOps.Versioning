@@ -129,10 +129,10 @@ async function stampVersionsInNetstandardCsprojFile(
     assemblyVersion : string,
     assemblyFileVersion : string,
     assemblyInformationalVersion : string,
-    assemblyInformationalVersionSuffix : string | null,
+    assemblyInformationalVersionSuffix : string,
     shouldSetReleaseNotes : boolean,
-    releaseNotes : string | null,
-    sourceVersion : string | null) : Promise<boolean>
+    releaseNotes : string,
+    sourceVersion : string) : Promise<boolean>
 {
     logDebug(`Looking for version information to update in '${csprojFile}'...`);
 
@@ -422,10 +422,10 @@ async function stampVersions(
     assemblyVersion : string,
     assemblyFileVersion : string,
     assemblyInformationalVersion : string,
-    assemblyInformationalVersionSuffix : string | null,
+    assemblyInformationalVersionSuffix : string,
     shouldSetReleaseNotes : boolean,
-    releaseNotes : string | null,
-    sourceVersion : string | null) : Promise<void>
+    releaseNotes : string,
+    sourceVersion : string) : Promise<void>
 {
     const sourcesDirectory = tl.getPathInput("SourcesDirectory", true)!;
 
@@ -483,16 +483,16 @@ async function run()
         const majorVersion = tl.getInput("MajorVersion");
         const minorVersion = tl.getInput("MinorVersion");
         const patchVersion = tl.getInput("PatchVersion");
-        const shouldCreatePrereleaseVersion = tl.getBoolInput("ShouldCreatePrereleaseVersion") ?? true;
+        const shouldCreatePrereleaseVersion = tl.getBoolInput("ShouldCreatePrereleaseVersion");
         const prereleaseLabel = tl.getInput("PrereleaseLabel");
-        const shouldSetReleaseNotes = tl.getBoolInput("ShouldSetReleaseNotes") ?? false;
-        const releaseNotes = tl.getInput("ReleaseNotes") ?? null;
-        const sourceVersion = process.env["BUILD_SOURCEVERSION"] ?? null;
+        const shouldSetReleaseNotes = tl.getBoolInput("ShouldSetReleaseNotes");
+        const releaseNotes = tl.getInput("ReleaseNotes") ?? '';
+        const sourceVersion = process.env["BUILD_SOURCEVERSION"] ?? '';
         const shouldOverrideAssemblyFileVersionRevision
-            = tl.getBoolInput("ShouldOverrideAssemblyFileVersionRevision") ?? false;
+            = tl.getBoolInput("ShouldOverrideAssemblyFileVersionRevision");
         const assemblyFileVersionRevisionOverride = parseNumberOrDefault(tl.getInput("AssemblyFileVersionRevisionOverride"));
         const shouldOverridePackagePrereleaseVersionRevision
-            = tl.getBoolInput("ShouldOverridePackagePrereleaseVersionRevision") ?? false;
+            = tl.getBoolInput("ShouldOverridePackagePrereleaseVersionRevision");
         const packagePrereleaseVersionRevisionOverride = parseNumberOrDefault(tl.getInput("PackagePrereleaseVersionRevisionOverride"));
 
         if (shouldCreatePrereleaseVersion && isNullOrWhiteSpace(prereleaseLabel))
@@ -516,7 +516,7 @@ async function run()
 
         let assemblyFileVersion = `${majorVersion}.${minorVersion}.${dateNumber}.${assemblyFileVersionRevision}`;
 
-        var assemblyInformationalVersionSuffix : string | null;
+        var assemblyInformationalVersionSuffix : string;
         var assemblyInformationalVersion : string;
         if (shouldCreatePrereleaseVersion)
         {
@@ -529,7 +529,7 @@ async function run()
         }
         else
         {
-            assemblyInformationalVersionSuffix = null;
+            assemblyInformationalVersionSuffix = '';
             assemblyInformationalVersion = `${majorVersion}.${minorVersion}.${patchVersion}`;
         }
 
