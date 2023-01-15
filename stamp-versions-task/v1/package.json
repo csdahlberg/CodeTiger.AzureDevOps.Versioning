@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "azure-devops-node-api": "^10.2.2",
-    "azure-pipelines-task-lib": "^2.10.0",
+    "azure-pipelines-task-lib": "^4.2.0",
     "glob": "^7.1.6",
     "xmldom": "^0.6.0",
     "xpath": "0.0.29"
