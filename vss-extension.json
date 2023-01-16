@@ -31,7 +31,7 @@
         {
             "id": "C6D4C637-19DB-4702-AB1A-6CDCDBC20176",
             "type": "ms.vss-distributed-task.task",
-            "description": "Stamps version information in various source files, including *AssemblyInfo.cs, *.nuspec, and *.vsixmanifest files.",
+            "description": "Stamps version information in various source files, including *.csproj, *AssemblyInfo.cs, *.nuspec, and *.vsixmanifest files.",
             "targets": [
                 "ms.vss-distributed-task.tasks"
             ],
