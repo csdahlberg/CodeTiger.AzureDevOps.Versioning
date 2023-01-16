@@ -6,7 +6,6 @@ import glob = require('glob');
 import xmldom = require("xmldom");
 import xpath = require("xpath");
 
-
 function isNullOrWhiteSpace(value : string | null | undefined)
 {
     return value == null || value.trim() === '';
@@ -260,7 +259,7 @@ async function stampVersionsInNuspecFile(
         if (commitAttribute)
         {
             commitAttribute.value = sourceVersion || "";
-            console.log(`Set /package/metadata/repository/@commit to '${version}' in '${nuspecFile}'.`);
+            console.log(`Set /package/metadata/repository/@commit to '${sourceVersion}' in '${nuspecFile}'.`);
         }
     }
 
