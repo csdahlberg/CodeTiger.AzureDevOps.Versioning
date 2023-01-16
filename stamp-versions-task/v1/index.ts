@@ -538,7 +538,11 @@ async function run()
     }
     catch (err)
     {
-        tl.setResult(tl.TaskResult.Failed, err.message, true);
+        if (err instanceof Error) {
+            tl.setResult(tl.TaskResult.Failed, err.message, true);
+        } else {
+            tl.setResult(tl.TaskResult.Failed, JSON.stringify(err), true);
+        }
     }
 }
 
